@@ -12,5 +12,8 @@
 .Renviron
 
 # Folders to ignore
-data
+data/external
+data/interim
+data/processed
+data/raw
 reports
