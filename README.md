@@ -67,5 +67,5 @@ Create a raster for every day of the tag lifetime based on deployment data and /
 
 ## Movement model
 
-
+## Relevant literature
 
