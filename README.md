@@ -67,7 +67,7 @@ Create a raster for every day of the tag lifetime based on deployment data and /
 
 ## Movement model
 
-The likelihood rasters of the observation model are used as input for the movement model. The conditional nature of movement (i.e. where a fish is at moment t1 will limit the area where the same fish can be at moment t2 because of the limited maximum swimming speed) introduces temporal autocorrelation between detections. This [temporal autocorrelation](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2894959/).
+The likelihood rasters of the observation model are used as input for the movement model. The conditional nature of movement (i.e. where a fish is at moment t1 will limit the area where the same fish can be at moment t2 because of the limited maximum swimming speed) introduces temporal autocorrelation between detections. This [temporal autocorrelation](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2894959/) is used in the movement model and allows to use the information stored between detections rather than within detections alone. 
 
 ## Relevant literature
 
