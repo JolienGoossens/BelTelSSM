@@ -69,3 +69,4 @@ Create a raster for every day of the tag lifetime based on deployment data and /
 
 ## Relevant literature
 
+* [Estimating individual animal movement from observation networks](https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/2041-210X.12086)
