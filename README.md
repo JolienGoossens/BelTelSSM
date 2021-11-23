@@ -75,6 +75,8 @@ The likelihood rasters of the observation model are used as input for the moveme
 * Account for a centralizing tendency (i.e. home range behavior?)
 * ...
 
+Useful R packages for movement models, click [here](https://gist.github.com/mdsumner/0a3cb0e58bf9d37b782943ac269e1eff).
+
 ## Relevant literature
 
 * [Estimating individual animal movement from observation networks](https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/2041-210X.12086)
