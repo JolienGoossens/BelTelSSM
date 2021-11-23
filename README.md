@@ -58,7 +58,7 @@ Create a raster for every day of the tag lifetime based on deployment data and /
 
 #### Issues to consider and discuss:
 
-* 2.A: How to deal with multiple detection locations in one day?
+* 2.A: How to deal with multiple detection locations in one day (finer temporal resolution, etc.)? 
 * 2.B: Quality assessment of deployment data?
 * 3.A: Does the 0.5 x 0.5 nm resolution suffice?
 * 3.B: Simple function or account for tag
@@ -67,5 +67,16 @@ Create a raster for every day of the tag lifetime based on deployment data and /
 
 ## Movement model
 
+The likelihood rasters of the observation model are used as input for the movement model. The conditional nature of movement (i.e. where a fish is at moment t1 will limit the area where the same fish can be at moment t2 because of the limited maximum swimming speed) introduces temporal and spatial autocorrelation between detections. This [autocorrelation](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2894959/) is used in the movement model and allows to use the information stored between detections rather than within detections alone. 
 
+### Which movement model to use?
 
+* Continuous or discrete time formulation?
+* Account for a centralizing tendency (i.e. home range behavior?)
+* ...
+
+Useful R packages for movement models, click [here](https://gist.github.com/mdsumner/0a3cb0e58bf9d37b782943ac269e1eff).
+
+## Relevant literature
+
+* [Estimating individual animal movement from observation networks](https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/2041-210X.12086)
