@@ -80,3 +80,4 @@ Useful R packages for movement models, click [here](https://gist.github.com/mdsu
 ## Relevant literature
 
 * [Estimating individual animal movement from observation networks](https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/2041-210X.12086)
+* [Navigating through the r packages for movement](https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/1365-2656.13116)
