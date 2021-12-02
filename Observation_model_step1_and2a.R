@@ -35,13 +35,19 @@ fish$Date<-as.Date(fish$date_time)
 fish$count<-1
 
 fish_count_per_receiver_and_date <- fish%>%
-  dplyr::group_by(Date,station_name)%>%
+  dplyr::group_by(Date,station_name,deploy_longitude,deploy_latitude)%>%
   dplyr::summarise(count_sum=sum(count))
+days_of_study_period<-as.data.frame(seq(min(fish_count_per_receiver_and_date$Date), max(fish_count_per_receiver_and_date$Date), by="days"))
+colnames(days_of_study_period)="Date"
+fish_count_per_receiver_and_date<-left_join(days_of_study_period,fish_count_per_receiver_and_date,by="Date")
+fish_count_per_receiver_and_date$count_sum[which(is.na(fish_count_per_receiver_and_date$count_sum)==TRUE)]=0
 
 fish_number_of_receivers_per_day <- as.data.frame(table(fish_count_per_receiver_and_date$Date))
-fish_number_of_receivers_per_day$Var1<-as.POSIXct(fish_number_of_receivers_per_day$Var1,format="%y-%m-%d",tz="utc")
+fish_number_of_receivers_per_day$Var1<-as.Date(fish_number_of_receivers_per_day$Var1,format="%Y-%m-%d",tz="utc")
 
 days_of_study_period<-as.data.frame(seq(min(fish_count_per_receiver_and_date$Date), max(fish_count_per_receiver_and_date$Date), by="days"))
 colnames(days_of_study_period)="Var1"
 
-test<-left_join(days_of_study_period,fish_number_of_receivers_per_day,by="Var1")
+fish_number_of_receivers_per_day_with_zeros<-left_join(days_of_study_period,fish_number_of_receivers_per_day,by="Var1")
+fish_number_of_receivers_per_day_with_zeros$Freq[which(is.na(fish_number_of_receivers_per_day_with_zeros$Freq)==TRUE)]=0
+
