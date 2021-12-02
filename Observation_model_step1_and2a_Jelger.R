@@ -5,6 +5,7 @@ source("./src/features/Exploration.R")
 library(leaflet)
 library(sp)
 library(dplyr)
+library(MASS)
 
 fish<-df[which(df$tag_serial_number==1292646),]
 
@@ -39,8 +40,8 @@ fish_count_per_receiver_and_date <- fish%>%
   dplyr::summarise(count_sum=sum(count))
 days_of_study_period<-as.data.frame(seq(min(fish_count_per_receiver_and_date$Date), max(fish_count_per_receiver_and_date$Date), by="days"))
 colnames(days_of_study_period)="Date"
-fish_count_per_receiver_and_date<-left_join(days_of_study_period,fish_count_per_receiver_and_date,by="Date")
-fish_count_per_receiver_and_date$count_sum[which(is.na(fish_count_per_receiver_and_date$count_sum)==TRUE)]=0
+fish_count_per_receiver_and_date_full<-left_join(days_of_study_period,fish_count_per_receiver_and_date,by="Date")
+fish_count_per_receiver_and_date_full$count_sum[which(is.na(fish_count_per_receiver_and_date$count_sum)==TRUE)]=0
 
 fish_number_of_receivers_per_day <- as.data.frame(table(fish_count_per_receiver_and_date$Date))
 fish_number_of_receivers_per_day$Var1<-as.Date(fish_number_of_receivers_per_day$Var1,format="%Y-%m-%d",tz="utc")
@@ -50,4 +51,12 @@ colnames(days_of_study_period)="Var1"
 
 fish_number_of_receivers_per_day_with_zeros<-left_join(days_of_study_period,fish_number_of_receivers_per_day,by="Var1")
 fish_number_of_receivers_per_day_with_zeros$Freq[which(is.na(fish_number_of_receivers_per_day_with_zeros$Freq)==TRUE)]=0
+
+
+# Plot kernels
+
+Kernel <- kde2d(fish_count_per_receiver_and_date$deploy_longitude, fish_count_per_receiver_and_date$deploy_latitude, 
+                n = 100, lims = c(2, 4, 51, 52),
+            h = c(0.1, 0.2) )
+image(f2, zlim = c(0, 0.05))
 
