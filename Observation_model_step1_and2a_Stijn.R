@@ -6,6 +6,10 @@ library(leaflet)
 library(sp)
 library(dplyr)
 library(raster)
+library(MASS)
+library(sf)
+library(rgeos)    
+library(rgdal) 
 
 fish<-df[which(df$tag_serial_number==1292646),]
 
@@ -40,8 +44,8 @@ fish_count_per_receiver_and_date <- fish%>%
   dplyr::summarise(count_sum=sum(count))
 days_of_study_period<-as.data.frame(seq(min(fish_count_per_receiver_and_date$Date), max(fish_count_per_receiver_and_date$Date), by="days"))
 colnames(days_of_study_period)="Date"
-fish_count_per_receiver_and_date<-left_join(days_of_study_period,fish_count_per_receiver_and_date,by="Date")
-fish_count_per_receiver_and_date$count_sum[which(is.na(fish_count_per_receiver_and_date$count_sum)==TRUE)]=0
+# fish_count_per_receiver_and_date<-left_join(days_of_study_period,fish_count_per_receiver_and_date,by="Date")
+# fish_count_per_receiver_and_date$count_sum[which(is.na(fish_count_per_receiver_and_date$count_sum)==TRUE)]=0
 
 fish_number_of_receivers_per_day <- as.data.frame(table(fish_count_per_receiver_and_date$Date))
 fish_number_of_receivers_per_day$Var1<-as.Date(fish_number_of_receivers_per_day$Var1,format="%Y-%m-%d",tz="utc")
@@ -51,3 +55,19 @@ colnames(days_of_study_period)="Var1"
 
 fish_number_of_receivers_per_day_with_zeros<-left_join(days_of_study_period,fish_number_of_receivers_per_day,by="Var1")
 fish_number_of_receivers_per_day_with_zeros$Freq[which(is.na(fish_number_of_receivers_per_day_with_zeros$Freq)==TRUE)]=0
+
+#kde2d(x=fish_count_per_receiver_and_date$deploy_longitude[1],y=fish_count_per_receiver_and_date$deploy_latitude[1],h=3000000)
+Kernel <- kde2d(fish_count_per_receiver_and_date$deploy_longitude, fish_count_per_receiver_and_date$deploy_latitude, 
+                n = 100, lims = c(2, 4, 51, 52),
+                h = c(0.1, 0.1) )
+image(Kernel, zlim = c(0, 0.05))
+
+coords_SP_t<-spTransform(coords_SP,"+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0")
+buff_min10km = buffer(coords_SP_t, 200)
+
+plot(booths_buffer)
+
+buff_min20km<- buffer(coords_SP_t,1000)
+
+test<-buff_min20km-buff_min10km
+plot(test)
