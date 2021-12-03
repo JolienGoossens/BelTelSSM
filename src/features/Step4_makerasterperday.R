@@ -30,66 +30,71 @@ bpns_rast_m = terra::project(bpns_rast, newproj)
 plot(bpns_rast_m)
 #### work out for one day
 # set fish id
-date_id = fish_count_per_receiver_and_date$Date[1]
+date_id = fish_count_per_receiver_and_date$Date[2]
 
-fish_date = fish_count_per_receiver_and_date %>% 
-  filter(Date == date_id)
-
-if (fish_date$count_sum > 0) {
-  # make a raster around fish date coordinates
-  fish_date = st_as_sf(fish_date, 
-                       coords = c("deploy_longitude", "deploy_latitude"),
-                       crs = 4326)
-  fish_date_m = st_transform(fish_date, crs = newproj)
-  fish_date_m_sp = as(fish_date_m, "Spatial")
+list_raster = lapply(unique(fish_count_per_receiver_and_date$Date), function(date_id){
+  fish_date = fish_count_per_receiver_and_date %>% 
+    filter(Date == date_id)
   
-  buff_close_m = buffer(fish_date_m_sp, 2000)
-  buff_far_m = buffer(fish_date_m_sp, 10000)
-  
-  buff_close_m_sf <- st_as_sf(buff_close_m)
-  buff_far_m_sf <- st_as_sf(buff_far_m)
-  
-  buff_close_m_sf$likelihood <- 0.5
-  buff_far_m_sf$likelihood <- 0.9
-  
-  buff_m_sf <- rbind(buff_close_m_sf,buff_far_m_sf)
-  
-  buff_m_ras = terra::rasterize(vect(buff_m_sf),bpns_rast_m, field="likelihood", background = 0, update=T)
-  check_mask = mask(buff_m_ras, bpns_rast_m)
-
-  plot(check_mask)
-  
+  if (any(fish_date$count_sum > 0)) {
+    # make a raster around fish date coordinates
+    fish_date = st_as_sf(fish_date, 
+                         coords = c("deploy_longitude", "deploy_latitude"),
+                         crs = 4326)
+    fish_date_m = st_transform(fish_date, crs = newproj)
+    fish_date_m_sp = as(fish_date_m, "Spatial")
+    
+    #buff_close_m = buffer(fish_date_m_sp, 2000)
+    buff_far_m = buffer(fish_date_m_sp, 1000)
+    
+    #buff_close_m_sf <- st_as_sf(buff_close_m)
+    buff_far_m_sf <- st_as_sf(buff_far_m)
+    
+    #buff_close_m_sf$likelihood <- 0.5
+    buff_far_m_sf$likelihood <- 0.9
+    
+    # buff_m_sf <- rbind(buff_close_m_sf,buff_far_m_sf)
+    #buff_m_sf = st_combine(buff_close_m_sf,buff_far_m_sf)
+    buff_m_sf = buff_far_m_sf
+    buff_m_ras = terra::rasterize(vect(buff_m_sf),bpns_rast_m, field="likelihood", background = 0, update=T)
+    buff_m_ras_mask = mask(buff_m_ras, bpns_rast_m)
+    
+    plot(buff_m_ras_mask)
+    title(date_id)
+    
   } else {
-  # make a raster around receiver locations
-  recloc_date = st_as_sf(recloc %>% filter(Date == date_id), 
-                     coords = c("deploy_longitude", "deploy_latitude"),
-                     crs = 4326)
-  recloc_date_m = st_transform(recloc_date, crs = newproj)
-  recloc_date_m_sp = as(recloc_date_m, "Spatial")
-  buff_close_m = buffer(recloc_date_m_sp, 200)
-  buff_far_m = buffer(recloc_date_m_sp, 1000)
-  buff_close_m_st = st_as_sf(buff_close_m)
-  buff_close_m_st$likelihood = 1
-  
-  buff_far_m_st = st_as_sf(buff_far_m)
-  buff_far_m_st$likelihood = 0.5
-  
-  
-  check = terra::rasterize(vect(buff_close_m_st),bpns_rast_m, background = 0, touches = T)
-  check = terra::rasterize(vect(buff_far_m_st),bpns_rast_m, background = 0, touches = T)
-  
-  check_mask = mask(check, bpns_rast_m)
-  plot(check)
-  plot(check_mask)
-}
+    # make a raster around receiver locations
+    recloc_date = st_as_sf(recloc %>% dplyr::filter(Date == date_id), 
+                           coords = c("deploy_longitude", "deploy_latitude"),
+                           crs = 4326)
+    recloc_date_m = st_transform(recloc_date, crs = newproj)
+    recloc_date_m_sp = as(recloc_date_m, "Spatial")
+    
+    buff_far_m = buffer(recloc_date_m_sp, 1000)
+    
+    #buff_close_m_sf <- st_as_sf(buff_close_m)
+    buff_far_m_sf <- st_as_sf(buff_far_m)
+    
+    #buff_close_m_sf$likelihood <- 0.5
+    buff_far_m_sf$likelihood <- 0.9
+    
+    # buff_m_sf <- rbind(buff_close_m_sf,buff_far_m_sf)
+    #buff_m_sf = st_combine(buff_close_m_sf,buff_far_m_sf)
+    buff_m_sf = buff_far_m_sf
+    buff_m_ras = terra::rasterize(vect(buff_m_sf),bpns_rast_m, field="likelihood", background = 0, update=T)
+    
+    
+    
+    buff_m_ras$likelihood = buff_m_ras$likelihood / sum(as.matrix(buff_m_ras$likelihood), na.rm =T)
 
-plot(buff_close_m)
-plot(buff_far_m)
-plot(buff_close_m_st)
-
-# load data that we need: rec locations + detection df
-# make variable names compatible
-# lapply loop -> work it out for one day
-# if detection -> kernel around det location
-# if no -> kernel around rec locations
-# merge it all into one
+    
+    buff_m_ras_mask = mask(buff_m_ras, bpns_rast_m)
+    
+    
+    buff_m_ras$likelihood = (buff_m_ras$likelihood - max(buff_m_ras$likelihood, na.rm = T))*-1
+    plot(buff_m_ras_mask)
+    title(date_id)
+    
+    
+  }
+})
