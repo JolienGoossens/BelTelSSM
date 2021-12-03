@@ -63,11 +63,12 @@ Kernel <- kde2d(fish_count_per_receiver_and_date$deploy_longitude, fish_count_pe
 image(Kernel, zlim = c(0, 0.05))
 
 coords_SP_t<-spTransform(coords_SP,"+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0")
-buff_min10km = buffer(coords_SP_t, 200)
+buff_min_first_m = buffer(coords_SP_t, 200)
 
-plot(booths_buffer)
+plot(buff_min_first_m)
 
-buff_min20km<- buffer(coords_SP_t,1000)
+buff_furthest<- buffer(coords_SP_t,1000)
 
-test<-buff_min20km-buff_min10km
-plot(test)
+buff_min_second_m<-buff_furthest-buff_min_first_m
+
+plot(buff_min_second_m)
