@@ -86,7 +86,7 @@ deploydf =  deploydf %>% filter(!((date_time_day == date(deploy_date_time) |
 
 #### Final select & filter ####
 deploydf = deploydf %>% 
-  select(station_name, deploy_latitude, deploy_longitude, date_time_day, receiver_id, 
+  dplyr::select(station_name, deploy_latitude, deploy_longitude, date_time_day, receiver_id, 
          acoustic_project_code, mooring_type)
 
 deploydf = deploydf %>% filter(year(date_time_day) > 2017)
