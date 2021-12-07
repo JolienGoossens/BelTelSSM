@@ -57,11 +57,11 @@ fish_number_of_receivers_per_day_with_zeros<-left_join(days_of_study_period,fish
 fish_number_of_receivers_per_day_with_zeros$Freq[which(is.na(fish_number_of_receivers_per_day_with_zeros$Freq)==TRUE)]=0
 
 coords_SP_t<-spTransform(coords_SP,"+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0")
-buff_min_first_m = buffer(coords_SP_t, 200)
+buff_min_first_m = buffer(coords_SP_t, 2000)
 
 plot(buff_min_first_m)
 
-buff_furthest<- buffer(coords_SP_t,1000)
+buff_furthest<- buffer(coords_SP_t,10000)
 
 buff_min_second_m<-buff_furthest-buff_min_first_m
 
