@@ -2,16 +2,8 @@
 library(tidyverse)
 library(lubridate)
 
-
 #### Read data ####
 deploy = read_csv("data/raw/deploy.csv")
-
-# Output needed:
-# Date
-# Station name
-# Longitude
-# Latitude
-
 
 # Quality check
 # Coordinates per station name
@@ -21,7 +13,7 @@ deploy = read_csv("data/raw/deploy.csv")
 #### Quality filter ####
 deploy = deploy %>% 
   filter(date(deploy_date_time) != date(recover_date_time)) %>% 
-  filter(deploy_latitude > 50) %>% 
+  filter(deploy_latitude >= 50 & deploy_latitude <= 52) %>% 
   filter(!(station_name == "bpns-Buitenratel" & date(deploy_date_time) == date("2020-09-07")))
 
 # Filter for deployments that were recovered and that resulted in a download
@@ -29,12 +21,15 @@ deploy = deploy %>% filter(!is.na(recover_date_time) & !is.na(download_file_name
 
 #### Add column end date ####
 # Needs to be changed: database issues with battery end dates
-# deploy = deploy %>% 
-#   mutate(timedif = difftime(recover_date_time, battery_estimated_end_date)) %>% 
-#   mutate(end_date = ifelse(as.numeric(timedif) < 60, 
-#                            date(recover_date_time), 
-#                            date(battery_estimated_end_date)))
-
+deploy = deploy %>%
+  mutate(timedif = difftime(recover_date_time, battery_estimated_end_date, units = "days")) %>%
+  mutate(end_date = case_when(
+    is.na(timedif) & difftime(recover_date_time, deploy_date_time, units = "weeks") < 78 ~ as.character(recover_date_time),
+    is.na(timedif) & difftime(recover_date_time, deploy_date_time, units = "weeks") >= 78 ~ as.character(deploy_date_time + months(15)),
+    as.numeric(timedif) < 90 ~ as.character(recover_date_time),
+    as.numeric(timedif) >= 90 ~ as.character(battery_estimated_end_date)
+  ))
+          
 #### Filter & select####
 # Filter for time
 deploy = deploy %>% 
@@ -43,7 +38,7 @@ deploy = deploy %>%
 # Select columns
 deploy = deploy %>% 
   select(receiver_id, acoustic_project_code, station_name, mooring_type,
-         deploy_date_time, recover_date_time, battery_estimated_end_date, end_date,
+         deploy_date_time, recover_date_time, battery_estimated_end_date, end_date, timedif,
          deploy_latitude, deploy_longitude)
 
 

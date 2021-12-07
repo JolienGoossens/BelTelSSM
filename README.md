@@ -64,6 +64,13 @@ Create a raster for every day of the tag lifetime based on deployment data and /
 * 3.B: Simple function or account for tag
 * 4: Do we account for deployment data if a tag was detected? What likelihood do we address to different pixels (~ how sure are we a tag was or wasn't detected)
 
+#### Scripts
+During the hackathon, the observation model was developed over different R scripts, which are stored in the folder **src/hackathon_scripts**. The code was integrated in the scripts in the folder **src/features**: 
+
+* *1_Daily_det.R*: Define time period tag was active and organize daily detection data
+* *1_Daily_deploy.R*: Organize deployment data
+* *2_Raster_per_day.R*: Make a list of daily rasters with likelihoods
+
 
 ## Movement model
 
