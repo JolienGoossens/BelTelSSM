@@ -50,65 +50,84 @@ list_rast = lapply(unique(df_day$tag_serial_number), function(serial_id){
   df_day_sub = df_day %>% filter(tag_serial_number == serial_id)
   list_rast_serial = lapply(unique(df_day_sub$Date), function(date_id){
     df_day_sub = df_day_sub %>% filter(Date == date_id)
-    if (any(df_day_sub$det_count > 0)) {
-      # make a raster around fish date coordinates
+    if (any(df_day_sub$det_count > 0)) {  # make a raster around fish date coordinates
+      # Transform data to spatial object
       df_day_sub = st_as_sf(df_day_sub, 
                             coords = c("deploy_longitude", "deploy_latitude"),
                             crs = 4326)
+      # Reproject
       df_day_sub_m = st_transform(df_day_sub, crs = newproj)
-      df_day_sub_m_sp = as(df_day_sub_m, "Spatial")
       
-      buff_close_m_sp = buffer(df_day_sub_m_sp, dist_close)
-      buff_far_m_sp = buffer(df_day_sub_m_sp, dist_far)
+      # Buffer around detection location(s)
+      buff_close_m = df_day_sub_m %>% st_buffer(dist = dist_close) %>% mutate(likelihood = 2)
+      buff_far_m = df_day_sub_m %>% st_buffer(dist = dist_far) %>% mutate(likelihood = 2)
       
-      buff_close_m_sf <- st_as_sf(buff_close_m_sp)
-      buff_far_m_sf <- st_as_sf(buff_far_m_sp)
+      # Vectorize buffer
+      buff_close_m_v = buff_close_m %>% vect()
+      buff_far_m_v = buff_far_m %>% vect()
       
-      buff_close_m_sf$likelihood <- lik_det_close
-      buff_far_m_sf$likelihood <- lik_det_far
-      
-      buff_close_m_v = vect(buff_close_m_sf)
-      buff_far_m_v = vect(buff_far_m_sf)
-      
-      buff_m_v = terra::cover(buff_far_m_v, buff_close_m_v)
-      
+      # Set likelihood of base layer
       bpns_rast_m = bpns_rast_m0 + lik_det_out
-      buff_m_ras = terra::rasterize(buff_m_v, bpns_rast_m,  field="likelihood", background = lik_det_out, update=T)
-      buff_m_ras$likelihood = buff_m_ras$likelihood / sum(as.matrix(buff_m_ras$likelihood), na.rm =T)
       
-      buff_m_ras_mask = mask(buff_m_ras, bpns_rast_m0)
+      # Rasterize buffered vectors
+      buff_m_ras_close = terra::rasterize(buff_close_m_v, bpns_rast_m, 
+                                          field="likelihood", 
+                                          touches = T, background = lik_nodet_out, update=T)
+      buff_m_ras_far = terra::rasterize(buff_far_m_v, bpns_rast_m, 
+                                        field="likelihood", 
+                                        touches = T, background = lik_nodet_out, update=T)
       
+      # Combine close and far rasters
+      buff_m_try = buff_m_ras_far * buff_m_ras_close
+      buff_m_try[buff_m_try == 4] = lik_det_close
+      buff_m_try[buff_m_try == 2] = lik_det_far
+      
+      # Add mask
+      buff_m_ras_mask = mask(buff_m_try, bpns_rast_m0)
+      # Set total likelihood to 1
+      buff_m_ras_mask$likelihood = buff_m_ras_mask$likelihood / sum(as.matrix(buff_m_ras_mask$likelihood), na.rm =T)
+      
+      # Plot
       plot(buff_m_ras_mask)
-      title(paste0("Tag ", serial_id, " - date ", date_id))
+      title(date_id)
       
-    } else {
-      # make a raster around receiver locations
+    } else { # make a raster around receiver locations
+      # Transform data to spatial object
       recloc_date = st_as_sf(recloc %>% dplyr::filter(Date == date_id), 
                              coords = c("deploy_longitude", "deploy_latitude"),
                              crs = 4326)
+      # Reproject
       recloc_date_m = st_transform(recloc_date, crs = newproj)
-      recloc_date_m_sp = as(recloc_date_m, "Spatial")
       
-      buff_close_m_sp = buffer(recloc_date_m_sp, dist_close)
-      buff_far_m_sp = buffer(recloc_date_m_sp, dist_far)
+      # Buffer around receiver locations
+      buff_close_m = recloc_date_m %>% st_buffer(dist = dist_close) %>% mutate(likelihood = 2)
+      buff_far_m = recloc_date_m %>% st_buffer(dist = dist_far) %>% mutate(likelihood = 2)
       
-      buff_close_m_sf <- st_as_sf(buff_close_m_sp)
-      buff_far_m_sf <- st_as_sf(buff_far_m_sp)
+      # Vectorize buffer
+      buff_close_m_v = buff_close_m %>% vect()
+      buff_far_m_v = buff_far_m %>% vect()
       
-      buff_close_m_sf$likelihood <- lik_nodet_close
-      buff_far_m_sf$likelihood <- lik_nodet_far
-      
-      buff_close_m_v = vect(buff_close_m_sf)
-      buff_far_m_v = vect(buff_far_m_sf)
-      
-      buff_m_v = terra::cover(buff_far_m_v, buff_close_m_v)
-      
+      # Set likelihood of base layer
       bpns_rast_m = bpns_rast_m0 + lik_nodet_out
-      buff_m_ras = terra::rasterize(buff_m_v, bpns_rast_m, field="likelihood", background = lik_nodet_out, update=T)
-      buff_m_ras$likelihood = buff_m_ras$likelihood / sum(as.matrix(buff_m_ras$likelihood), na.rm =T)
       
-      buff_m_ras_mask = mask(buff_m_ras, bpns_rast_m0)
+      # Rasterize buffered vectors
+      buff_m_ras_close = terra::rasterize(buff_close_m_v, bpns_rast_m, 
+                                          field="likelihood", 
+                                          touches = T, background = lik_nodet_out, update=T)
+      buff_m_ras_far = terra::rasterize(buff_far_m_v, bpns_rast_m, 
+                                        field="likelihood", 
+                                        touches = T, background = lik_nodet_out, update=T)
+      # Combine close and far rasters
+      buff_m_try = buff_m_ras_far * buff_m_ras_close
+      buff_m_try[buff_m_try == 4] = lik_nodet_close
+      buff_m_try[buff_m_try == 2] = lik_nodet_far
       
+      # Add mask
+      buff_m_ras_mask = mask(buff_m_try, bpns_rast_m0)
+      # Set total likelihood to 1
+      buff_m_ras_mask$likelihood = buff_m_ras_mask$likelihood / sum(as.matrix(buff_m_ras_mask$likelihood), na.rm =T)
+      
+      # Plot
       plot(buff_m_ras_mask)
       title(date_id)
     }
@@ -116,105 +135,3 @@ list_rast = lapply(unique(df_day$tag_serial_number), function(serial_id){
   })
 })
 
-
-serial_id = unique(df_day$tag_serial_number)[1]
-df_day_sub = df_day %>% filter(tag_serial_number == serial_id)
-
-date_id = unique(df_day_sub$Date)[5]
-df_day_sub = df_day_sub %>% filter(Date == date_id)
-
-
-
-
-
-
-if (any(df_day_sub$det_count > 0)) {
-  # make a raster around fish date coordinates
-  df_day_sub = st_as_sf(df_day_sub, 
-                       coords = c("deploy_longitude", "deploy_latitude"),
-                       crs = 4326)
-  df_day_sub_m = st_transform(df_day_sub, crs = newproj)
-  df_day_sub_m_sp = as(df_day_sub_m, "Spatial")
-  
-  buff_close_m_sp = buffer(df_day_sub_m_sp, dist_close)
-  buff_far_m_sp = buffer(df_day_sub_m_sp, dist_far)
-  
-  buff_close_m_sf <- st_as_sf(buff_close_m_sp)
-  buff_far_m_sf <- st_as_sf(buff_far_m_sp)
-  
-  buff_close_m_sf$likelihood <- lik_det_close
-  buff_far_m_sf$likelihood <- lik_det_far
-  
-  buff_close_m_v = vect(buff_close_m_sf)
-  buff_far_m_v = vect(buff_far_m_sf)
-  
-  buff_m_v = terra::cover(buff_far_m_v, buff_close_m_v)
-  
-  bpns_rast_m = bpns_rast_m0 + lik_det_out
-  buff_m_ras = terra::rasterize(buff_m_v, bpns_rast_m,  field="likelihood", background = lik_det_out, update=T)
-  buff_m_ras$likelihood = buff_m_ras$likelihood / sum(as.matrix(buff_m_ras$likelihood), na.rm =T)
-  
-  buff_m_ras_mask = mask(buff_m_ras, bpns_rast_m0)
-  
-  plot(buff_m_ras_mask)
-  title(paste0("Tag ", serial_id, " - date ", date_id))
-  
-} else {
-  # make a raster around receiver locations
-  recloc_date = st_as_sf(recloc %>% dplyr::filter(Date == date_id), 
-                         coords = c("deploy_longitude", "deploy_latitude"),
-                         crs = 4326)
-  recloc_date_m = recloc_date %>% st_transform(crs = newproj)
-  
-  buff_close_m = recloc_date_m %>% st_buffer(dist = dist_close) %>% mutate(likelihood = lik_nodet_close)
-  buff_far_m = recloc_date_m %>% st_buffer(dist = dist_far) %>% mutate(likelihood = lik_nodet_far)
-
-  buff_close_m_v = buff_close_m %>% st_union() %>% vect(layer = "likelihood")
-  buff_far_m_v = buff_far_m %>% st_union() %>% vect()
-  
-  buff_m_v = terra::cover(buff_far_m_v, buff_close_m_v)
-  plot(buff_m_v)
-  
-  recloc_date_m_sp = as(recloc_date_m, "Spatial")
-  
-  buff_close_m_sp = raster::buffer(recloc_date_m_sp, dist_close)
-  buff_far_m_sp = raster::buffer(recloc_date_m_sp, dist_far)
-  
-  buff_close_m_sf <- st_as_sf(buff_close_m_sp)
-  buff_far_m_sf <- st_as_sf(buff_far_m_sp)
-  
-  buff_close_m_sf$likelihood <- lik_nodet_close
-  buff_far_m_sf$likelihood <- lik_nodet_far
-  
-  
-  buff_close_m_v = vect(buff_close_m_sf)
-  buff_far_m_v = vect(buff_far_m_sf)
-  
-  plot(buff_close_m_v)
-  buff_m_v = terra::cover(buff_far_m_v, buff_close_m_v)
-  buff_m_v = union(buff_far_m_v, buff_close_m_v)
-  plot(buff_m_v)
-  
-  
-  
-  bpns_rast_m = bpns_rast_m0 + lik_nodet_out
-  buff_m_ras = terra::rasterize(buff_m_v, bpns_rast_m, fun = "min", field="likelihood", touches = T, background = lik_nodet_out, update=T)
-  
-  
-  
-  plot(buff_m_ras)
-  buff_m_ras = terra::rasterize(buff_close_m_v, bpns_rast_m, touches = T)
-  buff_m_ras = buff_m_ras > 0
-  plot(buff_close_m_v)
-  
-  
-  
-  
-  
-  buff_m_ras$likelihood = buff_m_ras$likelihood / sum(as.matrix(buff_m_ras$likelihood), na.rm =T)
-  plot(buff_m_ras)
-  buff_m_ras_mask = mask(buff_m_ras, bpns_rast_m0)
-  
-  plot(buff_m_ras_mask)
-  title(date_id)
-}
