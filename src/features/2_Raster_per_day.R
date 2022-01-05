@@ -15,6 +15,9 @@ bpns_rast = rast("data/external/hackraster.grd")
 # Set projection
 newproj = "+proj=utm +zone=31 +datum=WGS84 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m "
 
+# Set resolution factor
+res_factor = 0.25
+
 # Set distances in m
 dist_close = 500
 dist_far = 2000
@@ -35,6 +38,12 @@ df_day = df_day %>%
 # Set CRS
 terra::crs(bpns_rast)= "epsg:4326"
 
+# Change resolution
+rast_new_res = rast(extent = ext(bpns_rast), resolution = res(bpns_rast)*res_factor)
+if(res_factor != 1){
+  bpns_rast = resample(bpns_rast, rast_new_res)
+}
+
 # Reproject
 bpns_rast_m = terra::project(bpns_rast, newproj)
 
@@ -46,7 +55,7 @@ bpns_rast_m0 = bpns_rast_m * 0
 names(bpns_rast_m0) = "likelihood"
 
 #### Make raster for every day ####
-list_rast = lapply(unique(df_day$tag_serial_number), function(serial_id){
+lapply(unique(df_day$tag_serial_number), function(serial_id){
   print(paste0("Started with serial ID ", serial_id))
   df_day_sub = df_day %>% filter(tag_serial_number == serial_id)
   list_rast_serial = lapply(unique(df_day_sub$Date), function(date_id){
@@ -140,6 +149,8 @@ list_rast = lapply(unique(df_day$tag_serial_number), function(serial_id){
   names(rast_serial)  = unique(df_day_sub$Date)
   
   # Save stacked raster
-  output_name = paste0("data/processed/obsmodel/obs_", serial_id, ".tif")
+  output_name = paste0("data/processed/obsmodel/obs_", serial_id, "_res", 
+                       round(res(rast_serial)[1]), "x", round(res(rast_serial)[2]),
+                       ".tif")
   writeRaster(rast_serial, output_name, overwrite = T)
 })
