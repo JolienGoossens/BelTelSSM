@@ -45,8 +45,9 @@ save_mask = bpns_rast_m
 bpns_rast_m0 = bpns_rast_m * 0
 names(bpns_rast_m0) = "likelihood"
 
-
+#### Make raster for every day ####
 list_rast = lapply(unique(df_day$tag_serial_number), function(serial_id){
+  print(paste0("Started with serial ID ", serial_id))
   df_day_sub = df_day %>% filter(tag_serial_number == serial_id)
   list_rast_serial = lapply(unique(df_day_sub$Date), function(date_id){
     df_day_sub = df_day_sub %>% filter(Date == date_id)
@@ -88,8 +89,8 @@ list_rast = lapply(unique(df_day$tag_serial_number), function(serial_id){
       buff_m_ras_mask$likelihood = buff_m_ras_mask$likelihood / sum(as.matrix(buff_m_ras_mask$likelihood), na.rm =T)
       
       # Plot
-      plot(buff_m_ras_mask)
-      title(date_id)
+      # plot(buff_m_ras_mask)
+      # title(date_id)
       
     } else { # make a raster around receiver locations
       # Transform data to spatial object
@@ -128,10 +129,17 @@ list_rast = lapply(unique(df_day$tag_serial_number), function(serial_id){
       buff_m_ras_mask$likelihood = buff_m_ras_mask$likelihood / sum(as.matrix(buff_m_ras_mask$likelihood), na.rm =T)
       
       # Plot
-      plot(buff_m_ras_mask)
-      title(date_id)
+      # plot(buff_m_ras_mask)
+      # title(date_id)
     }
-    
+    return(buff_m_ras_mask)
   })
+  
+  # Stack rasters of all days 
+  rast_serial = terra::rast(list_rast_serial)
+  names(rast_serial)  = unique(df_day_sub$Date)
+  
+  # Save stacked raster
+  output_name = paste0("data/processed/obsmodel/obs_", serial_id, ".tif")
+  writeRaster(rast_serial, output_name, overwrite = T)
 })
-
